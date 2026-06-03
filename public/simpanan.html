@@ -112,7 +112,7 @@
                             <div>
                                 <label class="form-label">Nama Anggota</label>
                                 <select id="savingMember" class="form-input bg-white cursor-pointer" required>
-                                    <option value="">-- Pilih Anggota --</option>
+                                    <option value="">-- Memuat data anggota... --</option>
                                 </select>
                             </div>
                             <div>
@@ -136,7 +136,7 @@
                             <label class="form-label">Keterangan</label>
                             <input type="text" id="savingNote" class="form-input" placeholder="Keterangan tambahan (opsional)">
                         </div>
-                        <button type="submit" class="px-6 py-2.5 bg-primary text-white font-semibold rounded-xl hover:bg-red-700 transition shadow-lg shadow-red-500/20 text-sm">
+                        <button type="submit" id="btnSaveSaving" class="px-6 py-2.5 bg-primary text-white font-semibold rounded-xl hover:bg-red-700 transition shadow-lg shadow-red-500/20 text-sm">
                             Simpan Transaksi
                         </button>
                     </form>
@@ -179,18 +179,45 @@
 
     <script src="script.js"></script>
     <script>
+        // GLOBAL VARIABLES
+        let allMembers = [];
+        let allSavings = [];
+
         document.getElementById('savingDate').value = new Date().toISOString().split('T')[0];
 
+        // FORMAT RUPIAH SAAT INPUT
         document.getElementById('savingAmount').addEventListener('input', function(e) {
             let val = this.value.replace(/\D/g, '');
             this.value = val.replace(/\B(?=(\d{3})+(?!\d))/g, '.');
         });
 
-        function populateMembers() {
-            const members = JSON.parse(localStorage.getItem('koperasikas_members') || '[]').filter(m => m.status === 'Aktif');
-            const sel = document.getElementById('savingMember');
-            sel.innerHTML = '<option value="">-- Pilih Anggota --</option>' + 
-                members.map(m => `<option value="${m.name}">${m.name}</option>`).join('');
+        // FETCH DATA ANGGOTA UNTUK DROPDOWN
+        async function fetchMembersForDropdown() {
+            try {
+                const res = await fetch('/api/anggota.js');
+                if (!res.ok) throw new Error('Gagal memuat anggota');
+                allMembers = await res.json();
+                
+                const sel = document.getElementById('savingMember');
+                sel.innerHTML = '<option value="">-- Pilih Anggota --</option>' + 
+                    allMembers.map(m => `<option value="${m.id_anggota}">${m.nama_anggota}</option>`).join('');
+            } catch (err) {
+                console.error(err);
+                document.getElementById('savingMember').innerHTML = '<option value="">Error memuat data</option>';
+            }
+        }
+
+        // FETCH DATA SIMPANAN DARI API
+        async function fetchSavings() {
+            try {
+                const res = await fetch('/api/simpanan.js');
+                if (!res.ok) throw new Error('Gagal memuat simpanan');
+                allSavings = await res.json();
+                renderSavings();
+            } catch (err) {
+                console.error(err);
+                showToast('Gagal memuat data simpanan dari server.', 'error');
+            }
         }
 
         function getBadgeClass(type) {
@@ -199,27 +226,22 @@
             return 'badge-sukarela';
         }
 
-        function generateId() {
-            const savings = JSON.parse(localStorage.getItem('koperasikas_savings') || '[]');
-            const num = savings.length + 1;
-            return 'SMP-' + String(num).padStart(3, '0');
-        }
-
         function formatTanggal(dateStr) {
+            if (!dateStr) return '-';
             const d = new Date(dateStr);
             const months = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'];
             return `${d.getDate()} ${months[d.getMonth()]} ${d.getFullYear()}`;
         }
 
         function renderSavings() {
-            const savings = JSON.parse(localStorage.getItem('koperasikas_savings') || '[]');
             const tbody = document.getElementById('savingTableBody');
             const empty = document.getElementById('emptySaving');
             const countEl = document.getElementById('savingCount');
             const totalEl = document.getElementById('savingTotal');
 
-            const sorted = [...savings].sort((a, b) => new Date(b.date) - new Date(a.date));
-            const total = sorted.reduce((sum, s) => sum + parseFloat(s.rawAmount || s.amount), 0);
+            // SORT BERDASARKAN TANGGAL TERBARU
+            const sorted = [...allSavings].sort((a, b) => new Date(b.tanggal) - new Date(a.tanggal));
+            const total = sorted.reduce((sum, s) => sum + parseFloat(s.nominal || 0), 0);
 
             countEl.textContent = `(${sorted.length} transaksi)`;
             totalEl.textContent = `Total: ${formatRupiah(total)}`;
@@ -232,20 +254,23 @@
             empty.classList.add('hidden');
 
             tbody.innerHTML = sorted.map((s, index) => {
-                const amount = parseFloat(s.rawAmount || s.amount);
+                // GUNAKAN ID YANG SUDAH DI-FORMAT DARI BACKEND ("SMP-001")
+                const displayId = s.id_simpanan_formatted || `SMP-${String(s.id_simpanan).padStart(3, '0')}`;
+                const amount = parseFloat(s.nominal || 0);
+                
                 return `
                 <tr class="hover:bg-gray-50/50 transition">
                     <td class="px-6 py-4 text-sm font-medium text-gray-500">${index + 1}</td>
-                    <td class="px-6 py-4 text-xs font-mono text-gray-400">${s.id || '-'}</td>
-                    <td class="px-6 py-4 text-sm font-semibold text-gray-800">${s.memberName}</td>
+                    <td class="px-6 py-4 text-xs font-mono text-gray-400">${displayId}</td>
+                    <td class="px-6 py-4 text-sm font-semibold text-gray-800">${s.nama_anggota || '-'}</td>
                     <td class="px-6 py-4">
-                        <span class="badge-jenis ${getBadgeClass(s.type)}">${'Simpanan ' + s.type}</span>
+                        <span class="badge-jenis ${getBadgeClass(s.jenis_simpanan)}">${'Simpanan ' + s.jenis_simpanan}</span>
                     </td>
                     <td class="px-6 py-4 text-sm font-bold text-emerald-600">${formatRupiah(amount)}</td>
-                    <td class="px-6 py-4 text-sm text-gray-500">${formatTanggal(s.date)}</td>
-                    <td class="px-6 py-4 text-sm text-gray-400">${s.note || '-'}</td>
+                    <td class="px-6 py-4 text-sm text-gray-500">${formatTanggal(s.tanggal)}</td>
+                    <td class="px-6 py-4 text-sm text-gray-400">${s.keterangan || '-'}</td>
                     <td class="px-6 py-4 text-center">
-                        <button onclick="deleteSaving('${s.id}')" class="p-1.5 text-gray-300 hover:text-red-500 hover:bg-red-50 rounded-lg transition">
+                        <button onclick="deleteSaving(${s.id_simpanan}, '${s.nama_anggota}')" class="p-1.5 text-gray-300 hover:text-red-500 hover:bg-red-50 rounded-lg transition">
                             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
                         </button>
                     </td>
@@ -253,54 +278,65 @@
             `}).join('');
         }
 
-        document.getElementById('savingForm').addEventListener('submit', (e) => {
+        // HANDLE FORM SUBMIT (KIRIM KE API)
+        document.getElementById('savingForm').addEventListener('submit', async (e) => {
             e.preventDefault();
-            const memberName = document.getElementById('savingMember').value;
-            const type = document.getElementById('savingType').value;
-            const rawAmount = document.getElementById('savingAmount').value;
-            const amount = parseInt(rawAmount.replace(/\./g, ''));
-            const date = document.getElementById('savingDate').value;
-            const note = document.getElementById('savingNote').value;
+            
+            const btn = document.getElementById('btnSaveSaving');
+            const originalText = btn.innerText;
+            btn.innerText = 'Menyimpan...';
+            btn.disabled = true;
 
-            if (!memberName || !amount || !date) {
+            const id_anggota = parseInt(document.getElementById('savingMember').value);
+            const jenis_simpanan = document.getElementById('savingType').value;
+            const rawAmount = document.getElementById('savingAmount').value;
+            const nominal = parseInt(rawAmount.replace(/\./g, ''));
+            const tanggal = document.getElementById('savingDate').value;
+            const keterangan = document.getElementById('savingNote').value;
+
+            if (!id_anggota || !nominal || !tanggal) {
                 showToast('Mohon lengkapi semua field!', 'error');
+                btn.innerText = originalText;
+                btn.disabled = false;
                 return;
             }
 
-            let savings = JSON.parse(localStorage.getItem('koperasikas_savings') || '[]');
-            const newSaving = {
-                id: generateId(),
-                memberName,
-                type,
-                amount,
-                rawAmount: amount,
-                date,
-                note
-            };
-            savings.push(newSaving);
-            localStorage.setItem('koperasikas_savings', JSON.stringify(savings));
+            try {
+                const res = await fetch('/api/simpanan.js', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ id_anggota, jenis_simpanan, nominal, tanggal, keterangan })
+                });
 
-            document.getElementById('savingForm').reset();
-            document.getElementById('savingDate').value = new Date().toISOString().split('T')[0];
-            document.getElementById('savingType').value = 'Wajib';
-            populateMembers();
-            renderSavings();
-
-            showToast('Transaksi simpanan berhasil disimpan!', 'success');
+                const data = await res.json();
+                
+                if (res.ok) {
+                    showToast('Transaksi simpanan berhasil disimpan!', 'success');
+                    document.getElementById('savingForm').reset();
+                    document.getElementById('savingDate').value = new Date().toISOString().split('T')[0];
+                    document.getElementById('savingType').value = 'Wajib';
+                    fetchSavings(); // REFRESH TABEL OTOMATIS
+                } else {
+                    showToast(data.error || 'Gagal menyimpan transaksi.', 'error');
+                }
+            } catch (err) {
+                showToast('Error jaringan/server.', 'error');
+            } finally {
+                btn.innerText = originalText;
+                btn.disabled = false;
+            }
         });
 
-        function deleteSaving(id) {
-            if (!confirm('Yakin ingin menghapus data simpanan ini?')) return;
-            let savings = JSON.parse(localStorage.getItem('koperasikas_savings') || '[]');
-            savings = savings.filter(s => s.id !== id);
-            localStorage.setItem('koperasikas_savings', JSON.stringify(savings));
-            renderSavings();
-            showToast('Data simpanan berhasil dihapus', 'info');
+        function deleteSaving(id, name) {
+            if (!confirm(`Yakin ingin menghapus data simpanan atas nama ${name}?`)) return;
+            // NOTE: FITUR HAPUS BELUM TERSEDIA DI API. PERLU TAMBAH METHOD DELETE NANTI.
+            showToast('Fitur hapus belum tersedia di backend.', 'info');
         }
 
+        // LOAD DATA SAAT HALAMAN DIBUKA
         document.addEventListener('DOMContentLoaded', () => {
-            populateMembers();
-            renderSavings();
+            fetchMembersForDropdown();
+            fetchSavings();
         });
     </script>
 </body>

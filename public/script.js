@@ -33,12 +33,16 @@ async function handleLogin(username, password) {
 
 async function handleRegister(nama, username, password) {
     try {
+        console.log('📤 Mengirim data register...', { nama, username }); // LOGGING
+        
         const res = await fetch(`${API_BASE}/register.js`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ nama, username, password })
         });
         const data = await res.json();
+        
+        console.log('📥 Response dari API:', data); // LOGGING
         
         if (res.ok) {
             showToast('Daftar berhasil! Silakan login.', 'success');
@@ -47,6 +51,7 @@ async function handleRegister(nama, username, password) {
             showToast(data.error || 'Gagal daftar.', 'error');
         }
     } catch (err) {
+        console.error('❌ Error saat register:', err);
         showToast('Error jaringan/server.', 'error');
     }
 }
@@ -68,13 +73,40 @@ function showToast(message, type = 'info') {
     setTimeout(() => { toast.style.opacity = '0'; setTimeout(() => toast.remove(), 300); }, 3000);
 }
 
+// INI YANG HILANG DI KODE KAMU SEBELUMNYA! 
 document.addEventListener('DOMContentLoaded', () => {
     checkAuth();
+    
     const currentPath = window.location.pathname.split('/').pop();
+    
+    // Sidebar active state
     document.querySelectorAll('.sidebar a').forEach(link => {
         if (link.getAttribute('href') === currentPath) {
             link.classList.add('bg-[#DC1B33]', 'text-white');
             link.classList.remove('text-gray-400', 'hover:text-white', 'hover:bg-gray-800');
         }
     });
+
+    // LOGIN FORM HANDLER
+    const loginForm = document.getElementById('loginForm');
+    if (loginForm) {
+        loginForm.addEventListener('submit', async (e) => {
+            e.preventDefault(); // MENCEGAH HALAMAN RELOAD
+            const username = document.getElementById('username')?.value || document.getElementById('email')?.value;
+            const password = document.getElementById('password').value;
+            await handleLogin(username, password);
+        });
+    }
+
+    // REGISTER FORM HANDLER
+    const registerForm = document.getElementById('registerForm');
+    if (registerForm) {
+        registerForm.addEventListener('submit', async (e) => {
+            e.preventDefault(); // MENCEGAH HALAMAN RELOAD
+            const nama = document.getElementById('nama').value;
+            const username = document.getElementById('username')?.value || document.getElementById('email')?.value;
+            const password = document.getElementById('password').value;
+            await handleRegister(nama, username, password);
+        });
+    }
 });

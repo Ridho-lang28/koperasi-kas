@@ -26,7 +26,7 @@
 <body class="bg-gray-50">
 
     <div class="flex h-screen overflow-hidden">
-        <!-- SIDEBAR (TETAP SAMA seperti sebelumnya) -->
+        <!-- SIDEBAR -->
         <aside class="w-64 bg-dark text-white flex flex-col hidden md:flex">
             <div class="p-6 border-b border-gray-700">
                 <div class="flex items-center gap-3">
@@ -56,13 +56,11 @@
                 <h1 class="text-xl font-bold text-gray-800">Grafik Keuangan</h1>
             </header>
 
-            <!-- CONTENT AREA DENGAN GRAFIK BARU -->
             <main class="flex-1 overflow-y-auto p-6 md:p-8 bg-gray-50">
                 
-                <!-- Page Header -->
                 <div class="mb-6">
                     <h2 class="text-2xl font-bold text-gray-900">Grafik Keuangan</h2>
-                    <p class="text-sm text-gray-400 mt-1">Visualisasi data keuangan koperasi tahun 2026</p>
+                    <p class="text-sm text-gray-400 mt-1">Visualisasi data keuangan koperasi tahun berjalan</p>
                 </div>
 
                 <!-- ROW 1: Bar Chart + Donut -->
@@ -72,7 +70,7 @@
                     <div class="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
                         <div class="mb-6">
                             <h3 class="font-bold text-gray-800 text-base">Perbandingan Bulanan</h3>
-                            <p class="text-xs text-gray-400 mt-1">Pemasukan vs pengeluaran Jul–Des 2026</p>
+                            <p class="text-xs text-gray-400 mt-1">Pemasukan vs pengeluaran tahun berjalan</p>
                         </div>
                         <div class="h-[260px]">
                             <canvas id="barChart"></canvas>
@@ -93,7 +91,7 @@
                     <div class="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
                         <div class="mb-6">
                             <h3 class="font-bold text-gray-800 text-base">Komposisi Pengeluaran</h3>
-                            <p class="text-xs text-gray-400 mt-1">Distribusi biaya operasional bulan November</p>
+                            <p class="text-xs text-gray-400 mt-1">Distribusi biaya operasional keseluruhan</p>
                         </div>
                         <div class="flex items-center gap-6">
                             <div class="w-[180px] h-[180px] flex-shrink-0">
@@ -110,7 +108,7 @@
                 <div class="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
                     <div class="mb-6">
                         <h3 class="font-bold text-gray-800 text-base">Tren Pertumbuhan Pemasukan</h3>
-                        <p class="text-xs text-gray-400 mt-1">Perkembangan pemasukan koperasi sepanjang 2026</p>
+                        <p class="text-xs text-gray-400 mt-1">Perkembangan pemasukan koperasi sepanjang tahun</p>
                     </div>
                     <div class="h-[280px]">
                         <canvas id="areaChart"></canvas>
@@ -123,208 +121,147 @@
 
     <script src="script.js"></script>
     <script>
-        // Get data
-        const savings = JSON.parse(localStorage.getItem('koperasikas_savings') || '[]');
-        const expenses = JSON.parse(localStorage.getItem('koperasikas_expenses') || '[]');
+        let allSavings = [];
+        let allExpenses = [];
+
+        async function initCharts() {
+            try {
+                const [resSavings, resExpenses] = await Promise.all([
+                    fetch('/api/simpanan.js'),
+                    fetch('/api/pengeluaran.js')
+                ]);
+                
+                if (!resSavings.ok || !resExpenses.ok) throw new Error('Gagal memuat data');
+                
+                allSavings = await resSavings.json();
+                allExpenses = await resExpenses.json();
+                
+                renderBarChart();
+                renderDonutChart();
+                renderAreaChart();
+            } catch (err) {
+                console.error(err);
+                showToast('Gagal memuat data grafik.', 'error');
+            }
+        }
 
         const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'];
+        const currentYear = new Date().getFullYear();
 
         function getMonthlyIncome(monthIdx) {
-            const y = 2026;
-            const key = `${y}-${String(monthIdx + 1).padStart(2, '0')}`;
-            return savings.filter(s => s.date && s.date.startsWith(key)).reduce((sum, s) => sum + parseFloat(s.amount || 0), 0);
+            const key = `${currentYear}-${String(monthIdx + 1).padStart(2, '0')}`;
+            return allSavings.filter(s => s.tanggal && s.tanggal.startsWith(key)).reduce((sum, s) => sum + parseFloat(s.nominal || 0), 0);
         }
 
         function getMonthlyExpense(monthIdx) {
-            const y = 2024;
-            const key = `${y}-${String(monthIdx + 1).padStart(2, '0')}`;
-            return expenses.filter(e => e.date && e.date.startsWith(key)).reduce((sum, e) => sum + parseFloat(e.amount || 0), 0);
+            const key = `${currentYear}-${String(monthIdx + 1).padStart(2, '0')}`;
+            return allExpenses.filter(e => e.tanggal && e.tanggal.startsWith(key)).reduce((sum, e) => sum + parseFloat(e.nominal || 0), 0);
         }
 
         // ===== BAR CHART =====
-        const barLabels = ['Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'];
-        const barIncome = [6, 7, 8, 9, 10, 11].map(i => getMonthlyIncome(i));
-        const barExpense = [6, 7, 8, 9, 10, 11].map(i => getMonthlyExpense(i));
+        function renderBarChart() {
+            const barLabels = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'];
+            const barIncome = [0,1,2,3,4,5,6,7,8,9,10,11].map(i => getMonthlyIncome(i));
+            const barExpense = [0,1,2,3,4,5,6,7,8,9,10,11].map(i => getMonthlyExpense(i));
 
-        new Chart(document.getElementById('barChart'), {
-            type: 'bar',
-            data: {
-                labels: barLabels,
-                datasets: [
-                    {
-                        label: 'Pemasukan',
-                        data: barIncome,
-                        backgroundColor: '#10b981',
-                        borderRadius: 6,
-                        borderSkipped: false,
-                        barPercentage: 0.6,
-                        categoryPercentage: 0.7
-                    },
-                    {
-                        label: 'Pengeluaran',
-                        data: barExpense,
-                        backgroundColor: '#DC1B33',
-                        borderRadius: 6,
-                        borderSkipped: false,
-                        barPercentage: 0.6,
-                        categoryPercentage: 0.7
-                    }
-                ]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: {
-                    legend: { display: false },
-                    tooltip: {
-                        backgroundColor: '#1e1e2e',
-                        titleFont: { family: 'Inter', size: 12 },
-                        bodyFont: { family: 'Inter', size: 12 },
-                        padding: 12,
-                        cornerRadius: 8,
-                        callbacks: {
-                            label: ctx => ctx.dataset.label + ': Rp ' + ctx.parsed.y.toLocaleString('id-ID')
-                        }
-                    }
+            new Chart(document.getElementById('barChart'), {
+                type: 'bar',
+                data: {
+                    labels: barLabels,
+                    datasets: [
+                        { label: 'Pemasukan', data: barIncome, backgroundColor: '#10b981', borderRadius: 6, borderSkipped: false, barPercentage: 0.6, categoryPercentage: 0.7 },
+                        { label: 'Pengeluaran', data: barExpense, backgroundColor: '#DC1B33', borderRadius: 6, borderSkipped: false, barPercentage: 0.6, categoryPercentage: 0.7 }
+                    ]
                 },
-                scales: {
-                    x: {
-                        grid: { display: false },
-                        ticks: { font: { family: 'Inter', size: 11, weight: '500' }, color: '#9ca3af' }
+                options: {
+                    responsive: true, maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: {
+                            backgroundColor: '#1e1e2e', titleFont: { family: 'Inter', size: 12 }, bodyFont: { family: 'Inter', size: 12 }, padding: 12, cornerRadius: 8,
+                            callbacks: { label: ctx => ctx.dataset.label + ': Rp ' + ctx.parsed.y.toLocaleString('id-ID') }
+                        }
                     },
-                    y: {
-                        beginAtZero: true,
-                        grid: { color: '#f3f4f6', drawBorder: false },
-                        ticks: {
-                            font: { family: 'Inter', size: 11 },
-                            color: '#9ca3af',
-                            callback: v => v + 'jt'
-                        },
-                        border: { display: false }
+                    scales: {
+                        x: { grid: { display: false }, ticks: { font: { family: 'Inter', size: 11, weight: '500' }, color: '#9ca3af' } },
+                        y: { beginAtZero: true, grid: { color: '#f3f4f6', drawBorder: false }, ticks: { font: { family: 'Inter', size: 11 }, color: '#9ca3af', callback: v => (v/1000000).toFixed(1) + 'jt' }, border: { display: false } }
                     }
                 }
-            }
-        });
+            });
+        }
 
         // ===== DONUT CHART =====
-        const expenseCats = ['ATK', 'Listrik', 'Administrasi', 'Internet', 'Kebersihan'];
-        const catColors = ['#DC1B33', '#f87171', '#fca5a5', '#8b5cf6', '#f59e0b'];
-        const catTotals = expenseCats.map(c => expenses.filter(e => e.category === c).reduce((sum, e) => sum + parseFloat(e.amount || 0), 0));
-        const totalExp = catTotals.reduce((a, b) => a + b, 0) || 1;
-        const catPercents = catTotals.map(t => Math.round((t / totalExp) * 100));
+        function renderDonutChart() {
+            const expenseCats = ['ATK', 'Listrik', 'Administrasi', 'Internet', 'Kebersihan', 'Operasional', 'Lainnya'];
+            const catColors = ['#DC1B33', '#f87171', '#fca5a5', '#8b5cf6', '#f59e0b', '#10b981', '#6b7280'];
+            
+            const catTotals = expenseCats.map(c => allExpenses.filter(e => e.kategori === c).reduce((sum, e) => sum + parseFloat(e.nominal || 0), 0));
+            const totalExp = catTotals.reduce((a, b) => a + b, 0) || 1;
+            const catPercents = catTotals.map(t => Math.round((t / totalExp) * 100));
 
-        new Chart(document.getElementById('donutChart'), {
-            type: 'doughnut',
-            data: {
-                labels: expenseCats,
-                datasets: [{
-                    data: catTotals,
-                    backgroundColor: catColors,
-                    borderWidth: 0,
-                    hoverOffset: 4
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                cutout: '65%',
-                plugins: {
-                    legend: { display: false },
-                    tooltip: {
-                        backgroundColor: '#1e1e2e',
-                        titleFont: { family: 'Inter' },
-                        bodyFont: { family: 'Inter' },
-                        padding: 10,
-                        cornerRadius: 8
-                    }
+            new Chart(document.getElementById('donutChart'), {
+                type: 'doughnut',
+                data: {
+                    labels: expenseCats,
+                    datasets: [{ data: catTotals, backgroundColor: catColors, borderWidth: 0, hoverOffset: 4 }]
+                },
+                options: {
+                    responsive: true, maintainAspectRatio: false, cutout: '65%',
+                    plugins: { legend: { display: false }, tooltip: { backgroundColor: '#1e1e2e', titleFont: { family: 'Inter' }, bodyFont: { family: 'Inter' }, padding: 10, cornerRadius: 8 } }
                 }
-            }
-        });
+            });
 
-        // Custom Legend dengan Progress Bar
-        const legendContainer = document.getElementById('expenseLegend');
-        legendContainer.innerHTML = expenseCats.map((cat, i) => `
-            <div class="flex items-center gap-3">
-                <div class="flex items-center gap-2 w-[120px]">
-                    <span class="w-2.5 h-2.5 rounded-full flex-shrink-0" style="background:${catColors[i]}"></span>
-                    <span class="text-xs font-medium text-gray-700 truncate">${cat}</span>
+            // Custom Legend dengan Progress Bar
+            const legendContainer = document.getElementById('expenseLegend');
+            legendContainer.innerHTML = expenseCats.map((cat, i) => `
+                <div class="flex items-center gap-3">
+                    <div class="flex items-center gap-2 w-[120px]">
+                        <span class="w-2.5 h-2.5 rounded-full flex-shrink-0" style="background:${catColors[i]}"></span>
+                        <span class="text-xs font-medium text-gray-700 truncate">${cat}</span>
+                    </div>
+                    <div class="flex-1 h-1.5 bg-gray-100 rounded-full overflow-hidden">
+                        <div class="h-full rounded-full" style="width:${catPercents[i]}%;background:${catColors[i]}"></div>
+                    </div>
+                    <span class="text-xs font-bold text-gray-800 w-8 text-right">${catPercents[i]}%</span>
                 </div>
-                <div class="flex-1 h-1.5 bg-gray-100 rounded-full overflow-hidden">
-                    <div class="h-full rounded-full" style="width:${catPercents[i]}%;background:${catColors[i]}"></div>
-                </div>
-                <span class="text-xs font-bold text-gray-800 w-8 text-right">${catPercents[i]}%</span>
-            </div>
-        `).join('');
+            `).join('');
+        }
 
         // ===== AREA CHART =====
-        const areaLabels = monthNames;
-        const areaData = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11].map(i => getMonthlyIncome(i));
+        function renderAreaChart() {
+            const areaData = [0,1,2,3,4,5,6,7,8,9,10,11].map(i => getMonthlyIncome(i));
 
-        new Chart(document.getElementById('areaChart'), {
-            type: 'line',
-            data: {
-                labels: areaLabels,
-                datasets: [{
-                    label: 'Pemasukan',
-                    data: areaData,
-                    borderColor: '#DC1B33',
-                    backgroundColor: function(context) {
-                        const chart = context.chart;
-                        const {ctx, chartArea} = chart;
-                        if (!chartArea) return '#DC1B33';
-                        const gradient = ctx.createLinearGradient(0, chartArea.top, 0, chartArea.bottom);
-                        gradient.addColorStop(0, 'rgba(220, 27, 51, 0.15)');
-                        gradient.addColorStop(1, 'rgba(220, 27, 51, 0.0)');
-                        return gradient;
-                    },
-                    fill: true,
-                    tension: 0.4,
-                    pointRadius: 0,
-                    pointHoverRadius: 6,
-                    pointHoverBackgroundColor: '#DC1B33',
-                    pointHoverBorderColor: '#fff',
-                    pointHoverBorderWidth: 3,
-                    borderWidth: 2.5
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: {
-                    legend: { display: false },
-                    tooltip: {
-                        backgroundColor: '#1e1e2e',
-                        titleFont: { family: 'Inter', size: 12 },
-                        bodyFont: { family: 'Inter', size: 12 },
-                        padding: 12,
-                        cornerRadius: 8,
-                        callbacks: {
-                            label: ctx => 'Pemasukan: Rp ' + ctx.parsed.y.toLocaleString('id-ID')
-                        }
-                    }
-                },
-                scales: {
-                    x: {
-                        grid: { display: false },
-                        ticks: { font: { family: 'Inter', size: 11, weight: '500' }, color: '#9ca3af' }
-                    },
-                    y: {
-                        beginAtZero: true,
-                        grid: { color: '#f3f4f6', drawBorder: false },
-                        ticks: {
-                            font: { family: 'Inter', size: 11 },
-                            color: '#9ca3af',
-                            callback: v => v + 'jt'
+            new Chart(document.getElementById('areaChart'), {
+                type: 'line',
+                data: {
+                    labels: monthNames,
+                    datasets: [{
+                        label: 'Pemasukan', data: areaData, borderColor: '#DC1B33',
+                        backgroundColor: function(context) {
+                            const chart = context.chart;
+                            const {ctx, chartArea} = chart;
+                            if (!chartArea) return '#DC1B33';
+                            const gradient = ctx.createLinearGradient(0, chartArea.top, 0, chartArea.bottom);
+                            gradient.addColorStop(0, 'rgba(220, 27, 51, 0.15)');
+                            gradient.addColorStop(1, 'rgba(220, 27, 51, 0.0)');
+                            return gradient;
                         },
-                        border: { display: false }
-                    }
+                        fill: true, tension: 0.4, pointRadius: 0, pointHoverRadius: 6, pointHoverBackgroundColor: '#DC1B33', pointHoverBorderColor: '#fff', pointHoverBorderWidth: 3, borderWidth: 2.5
+                    }]
                 },
-                interaction: {
-                    intersect: false,
-                    mode: 'index'
+                options: {
+                    responsive: true, maintainAspectRatio: false,
+                    plugins: { legend: { display: false }, tooltip: { backgroundColor: '#1e1e2e', titleFont: { family: 'Inter', size: 12 }, bodyFont: { family: 'Inter', size: 12 }, padding: 12, cornerRadius: 8, callbacks: { label: ctx => 'Pemasukan: Rp ' + ctx.parsed.y.toLocaleString('id-ID') } } },
+                    scales: {
+                        x: { grid: { display: false }, ticks: { font: { family: 'Inter', size: 11, weight: '500' }, color: '#9ca3af' } },
+                        y: { beginAtZero: true, grid: { color: '#f3f4f6', drawBorder: false }, ticks: { font: { family: 'Inter', size: 11 }, color: '#9ca3af', callback: v => (v/1000000).toFixed(1) + 'jt' }, border: { display: false } }
+                    },
+                    interaction: { intersect: false, mode: 'index' }
                 }
-            }
-        });
+            });
+        }
+
+        document.addEventListener('DOMContentLoaded', initCharts);
     </script>
 </body>
 </html>

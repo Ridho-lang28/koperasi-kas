@@ -104,7 +104,7 @@
                 <div class="flex flex-col md:flex-row md:items-center justify-between mb-6 gap-4">
                     <div>
                         <h2 class="text-xl font-bold text-gray-900">Data Anggota</h2>
-                        <p class="text-sm text-gray-500 mt-0.5" id="memberCountLabel">0 anggota terdaftar</p>
+                        <p class="text-sm text-gray-500 mt-0.5" id="memberCountLabel">Memuat data...</p>
                     </div>
                     <button onclick="openMemberModal()" class="px-5 py-2.5 bg-primary text-white font-medium rounded-xl hover:bg-red-700 transition flex items-center gap-2 shadow-lg shadow-red-500/20">
                         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
@@ -202,12 +202,8 @@
 
     <script src="script.js"></script>
     <script>
-        // Generate ID
-        function generateMemberId() {
-            const members = JSON.parse(localStorage.getItem('koperasikas_members') || '[]');
-            const num = members.length + 1;
-            return 'ANG-' + String(num).padStart(3, '0');
-        }
+        // GLOBAL VARIABLES
+        let allMembers = [];
 
         function formatTanggal(dateStr) {
             if (!dateStr) return '-';
@@ -216,15 +212,27 @@
             return `${d.getDate()} ${months[d.getMonth()]} ${d.getFullYear()}`;
         }
 
+        // FETCH DATA DARI API
+        async function fetchMembers() {
+            try {
+                const res = await fetch('/api/anggota.js');
+                if (!res.ok) throw new Error('Gagal mengambil data');
+                allMembers = await res.json();
+                renderMembers();
+            } catch (err) {
+                console.error(err);
+                Swal.fire({ icon: 'error', title: 'Error', text: 'Gagal memuat data anggota dari server.' });
+            }
+        }
+
         function renderMembers() {
-            const members = JSON.parse(localStorage.getItem('koperasikas_members') || '[]');
             const search = document.getElementById('searchMember').value.toLowerCase();
             
-            const filtered = members.filter(m => {
-                const matchSearch = m.name.toLowerCase().includes(search) || 
-                                    m.id.toLowerCase().includes(search) ||
+            const filtered = allMembers.filter(m => {
+                const matchSearch = m.nama_anggota.toLowerCase().includes(search) || 
+                                    String(m.id_anggota).toLowerCase().includes(search) ||
                                     (m.nik && m.nik.includes(search)) ||
-                                    (m.address && m.address.toLowerCase().includes(search));
+                                    (m.alamat && m.alamat.toLowerCase().includes(search));
                 return matchSearch;
             });
 
@@ -232,7 +240,7 @@
             const empty = document.getElementById('emptyMember');
             const label = document.getElementById('memberCountLabel');
             
-            label.textContent = `${filtered.length} dari ${members.length} anggota`;
+            label.textContent = `${filtered.length} dari ${allMembers.length} anggota`;
 
             tbody.innerHTML = '';
             if (filtered.length === 0) {
@@ -248,21 +256,21 @@
 
                 tbody.innerHTML += `
                 <tr class="hover:bg-gray-50/50 transition">
-                    <td class="px-6 py-4 text-sm font-semibold text-gray-800">${m.id || '-'}</td>
+                    <td class="px-6 py-4 text-sm font-semibold text-gray-800">${m.id_anggota || '-'}</td>
                     <td class="px-6 py-4 text-sm text-gray-700 font-mono">${m.nik || '-'}</td>
-                    <td class="px-6 py-4 text-sm font-medium text-gray-900">${m.name}</td>
-                    <td class="px-6 py-4 text-sm text-gray-700">${m.phone || '-'}</td>
-                    <td class="px-6 py-4 text-sm text-gray-700 max-w-xs truncate" title="${m.address || ''}">${m.address || '-'}</td>
-                    <td class="px-6 py-4 text-sm text-gray-700">${formatTanggal(m.joinDate)}</td>
+                    <td class="px-6 py-4 text-sm font-medium text-gray-900">${m.nama_anggota}</td>
+                    <td class="px-6 py-4 text-sm text-gray-700">${m.no_hp || '-'}</td>
+                    <td class="px-6 py-4 text-sm text-gray-700 max-w-xs truncate" title="${m.alamat || ''}">${m.alamat || '-'}</td>
+                    <td class="px-6 py-4 text-sm text-gray-700">${formatTanggal(m.tanggal_gabung)}</td>
                     <td class="px-6 py-4">
                         <span class="px-3 py-1 text-xs font-semibold rounded-full ${statusClass}">${m.status}</span>
                     </td>
                     <td class="px-6 py-4 text-center">
                         <div class="flex items-center justify-center gap-2">
-                            <button onclick="editMember('${m.id}')" class="p-1.5 text-blue-500 hover:bg-blue-50 rounded-lg transition" title="Edit">
+                            <button onclick="editMember(${m.id_anggota})" class="p-1.5 text-blue-500 hover:bg-blue-50 rounded-lg transition" title="Edit">
                                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg>
                             </button>
-                            <button onclick="confirmDelete('${m.id}', '${m.name}')" class="p-1.5 text-red-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition" title="Hapus">
+                            <button onclick="confirmDelete(${m.id_anggota}, '${m.nama_anggota.replace(/'/g, "\\'")}')" class="p-1.5 text-red-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition" title="Hapus">
                                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
                             </button>
                         </div>
@@ -287,16 +295,15 @@
         }
 
         function editMember(id) {
-            const members = JSON.parse(localStorage.getItem('koperasikas_members') || '[]');
-            const member = members.find(m => m.id === id);
+            const member = allMembers.find(m => m.id_anggota === id);
             
             if (member) {
-                document.getElementById('memberId').value = member.id;
+                document.getElementById('memberId').value = member.id_anggota;
                 document.getElementById('memberNIK').value = member.nik || '';
-                document.getElementById('memberName').value = member.name;
-                document.getElementById('memberPhone').value = member.phone || '';
-                document.getElementById('memberDate').value = member.joinDate || '';
-                document.getElementById('memberAddress').value = member.address || '';
+                document.getElementById('memberName').value = member.nama_anggota;
+                document.getElementById('memberPhone').value = member.no_hp || '';
+                document.getElementById('memberDate').value = member.tanggal_gabung || '';
+                document.getElementById('memberAddress').value = member.alamat || '';
                 document.getElementById('memberStatus').value = member.status || 'Aktif';
                 document.getElementById('modalTitle').textContent = 'Edit Anggota';
                 
@@ -320,49 +327,78 @@
                 reverseButtons: true,
                 customClass: { confirmButton: 'px-4 py-2 rounded-lg font-medium', cancelButton: 'px-4 py-2 rounded-lg font-medium ml-2' },
                 buttonsStyling: false
-            }).then((result) => {
-                if (result.isConfirmed) deleteMember(id);
+            }).then(async (result) => {
+                if (result.isConfirmed) {
+                    try {
+                        // NOTE: Kamu perlu menambahkan endpoint DELETE di api/anggota.js nanti
+                        // Untuk sekarang kita tampilkan alert saja
+                        Swal.fire({ icon: 'info', title: 'Info', text: 'Fitur hapus belum tersedia di API. Silakan tambahkan method DELETE di backend.' });
+                    } catch (err) {
+                        Swal.fire({ icon: 'error', title: 'Error', text: err.message });
+                    }
+                }
             });
         }
 
-        function deleteMember(id) {
-            let members = JSON.parse(localStorage.getItem('koperasikas_members') || '[]');
-            const member = members.find(m => m.id === id);
-            members = members.filter(m => m.id !== id);
-            localStorage.setItem('koperasikas_members', JSON.stringify(members));
-            
-            Swal.fire({ icon: 'success', title: 'Berhasil!', text: `Anggota ${member ? member.name : ''} telah dihapus.`, timer: 2000, showConfirmButton: false, timerProgressBar: true });
-            renderMembers();
-        }
-
-        document.getElementById('memberForm').addEventListener('submit', (e) => {
+        // HANDLE FORM SUBMIT (CREATE / UPDATE)
+        document.getElementById('memberForm').addEventListener('submit', async (e) => {
             e.preventDefault();
+            
+            const btn = e.target.querySelector('button[type="submit"]');
+            const originalText = btn.innerText;
+            btn.innerText = 'Menyimpan...';
+            btn.disabled = true;
+
             const id = document.getElementById('memberId').value;
-            const data = {
-                id: id || generateMemberId(),
+            const payload = {
+                nama_anggota: document.getElementById('memberName').value,
                 nik: document.getElementById('memberNIK').value,
-                name: document.getElementById('memberName').value,
-                phone: document.getElementById('memberPhone').value,
-                joinDate: document.getElementById('memberDate').value,
-                address: document.getElementById('memberAddress').value,
+                no_hp: document.getElementById('memberPhone').value,
+                tanggal_gabung: document.getElementById('memberDate').value,
+                alamat: document.getElementById('memberAddress').value,
                 status: document.getElementById('memberStatus').value
             };
 
-            let members = JSON.parse(localStorage.getItem('koperasikas_members') || '[]');
-            if (id) {
-                members = members.map(m => m.id === id ? data : m);
-                Swal.fire({ icon: 'success', title: 'Berhasil!', text: 'Data anggota berhasil diperbarui.', timer: 1500, showConfirmButton: false });
-            } else {
-                members.push(data);
-                Swal.fire({ icon: 'success', title: 'Berhasil!', text: 'Anggota baru berhasil ditambahkan.', timer: 1500, showConfirmButton: false });
+            try {
+                let res;
+                if (id) {
+                    // UPDATE (Perlu endpoint PUT di backend nanti)
+                    Swal.fire({ icon: 'info', title: 'Info', text: 'Fitur update belum tersedia di API. Data baru akan ditambahkan sebagai entri baru.' });
+                    res = await fetch('/api/anggota.js', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payload)
+                    });
+                } else {
+                    // CREATE
+                    res = await fetch('/api/anggota.js', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payload)
+                    });
+                }
+
+                const data = await res.json();
+                
+                if (res.ok) {
+                    Swal.fire({ icon: 'success', title: 'Berhasil!', text: id ? 'Data diperbarui.' : 'Anggota baru berhasil ditambahkan.', timer: 1500, showConfirmButton: false });
+                    closeMemberModal();
+                    fetchMembers(); // Refresh tabel
+                } else {
+                    Swal.fire({ icon: 'error', title: 'Gagal!', text: data.error || 'Terjadi kesalahan.' });
+                }
+            } catch (err) {
+                Swal.fire({ icon: 'error', title: 'Error Jaringan', text: err.message });
+            } finally {
+                btn.innerText = originalText;
+                btn.disabled = false;
             }
-            localStorage.setItem('koperasikas_members', JSON.stringify(members));
-            closeMemberModal();
-            renderMembers();
         });
 
         document.getElementById('searchMember').addEventListener('input', renderMembers);
-        document.addEventListener('DOMContentLoaded', renderMembers);
+        
+        // LOAD DATA SAAT HALAMAN DIBUKA
+        document.addEventListener('DOMContentLoaded', fetchMembers);
     </script>
 </body>
 </html>

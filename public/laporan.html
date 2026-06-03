@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Laporan - KoperasiKas</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = { theme: { extend: { colors: { primary: '#DC1B33', dark: '#1e1e2e' } } } }
+    </script>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body class="bg-gray-50">
+
+    <div class="flex h-screen overflow-hidden">
+        <!-- SIDEBAR (Highlight menu Laporan) -->
+        <aside class="w-64 bg-dark text-white flex flex-col hidden md:flex">
+            <div class="p-6 border-b border-gray-700">
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 bg-primary rounded-lg flex items-center justify-center"><svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"></path></svg></div>
+                    <span class="text-xl font-bold">KoperasiKas</span>
+                </div>
+            </div>
+            <nav class="flex-1 overflow-y-auto py-4">
+                <div class="px-4 mb-2 text-xs font-semibold text-gray-500 uppercase">Menu Utama</div>
+                <a href="index.html" class="flex items-center gap-3 px-4 py-3 text-gray-400 hover:text-white hover:bg-gray-800 transition"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"></path></svg><span class="font-medium">Dashboard</span></a>
+                <a href="data-anggota.html" class="flex items-center gap-3 px-4 py-3 text-gray-400 hover:text-white hover:bg-gray-800 transition"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path></svg><span class="font-medium">Data Anggota</span></a>
+                <a href="simpanan.html" class="flex items-center gap-3 px-4 py-3 text-gray-400 hover:text-white hover:bg-gray-800 transition"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg><span class="font-medium">Simpanan</span></a>
+                <a href="pengeluaran.html" class="flex items-center gap-3 px-4 py-3 text-gray-400 hover:text-white hover:bg-gray-800 transition"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z"></path></svg><span class="font-medium">Pengeluaran</span></a>
+                <div class="px-4 mt-6 mb-2 text-xs font-semibold text-gray-500 uppercase">Laporan</div>
+                <a href="laporan.html" class="flex items-center gap-3 px-4 py-3 bg-primary text-white transition"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg><span class="font-medium">Laporan</span></a>
+                <a href="grafik.html" class="flex items-center gap-3 px-4 py-3 text-gray-400 hover:text-white hover:bg-gray-800 transition"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 12l3-3 3 3 4-4M8 21l4-4 4 4M3 4h18M4 4h16v12a1 1 0 01-1 1H5a1 1 0 01-1-1V4z"></path></svg><span class="font-medium">Grafik Keuangan</span></a>
+                <a href="cetak-export.html" class="flex items-center gap-3 px-4 py-3 text-gray-400 hover:text-white hover:bg-gray-800 transition"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg><span class="font-medium">Cetak & Export</span></a>
+            </nav>
+            <div class="p-4 border-t border-gray-700">
+                <button onclick="logout()" class="w-full flex items-center justify-center gap-2 px-4 py-2 text-sm text-gray-400 hover:text-white hover:bg-gray-800 rounded-lg transition"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path></svg>Keluar</button>
+            </div>
+        </aside>
+
+        <div class="flex-1 flex flex-col overflow-hidden">
+            <header class="bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between">
+                <h1 class="text-xl font-bold text-gray-800">Laporan Keuangan</h1>
+            </header>
+
+            <main class="flex-1 overflow-y-auto p-6">
+                <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 mb-6">
+                    <h3 class="text-lg font-bold text-gray-800 mb-4">📅 Pilih Periode Laporan</h3>
+                    <div class="flex flex-wrap gap-4 items-end">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Dari Bulan</label>
+                            <input type="month" id="reportFrom" class="px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-primary/20 outline-none">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Sampai Bulan</label>
+                            <input type="month" id="reportTo" class="px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-primary/20 outline-none">
+                        </div>
+                        <button onclick="generateReport()" class="px-6 py-2.5 bg-primary text-white font-medium rounded-lg hover:bg-red-700 transition flex items-center gap-2">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+                            Tampilkan Laporan
+                        </button>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+                    <div class="bg-white rounded-2xl p-6 shadow-sm border border-gray-100 border-l-4 border-l-green-500">
+                        <p class="text-sm text-gray-500 mb-1">Total Pemasukan</p>
+                        <h3 class="text-2xl font-bold text-green-600" id="reportIncome">Rp 0</h3>
+                    </div>
+                    <div class="bg-white rounded-2xl p-6 shadow-sm border border-gray-100 border-l-4 border-l-red-500">
+                        <p class="text-sm text-gray-500 mb-1">Total Pengeluaran</p>
+                        <h3 class="text-2xl font-bold text-red-600" id="reportExpense">Rp 0</h3>
+                    </div>
+                    <div class="bg-white rounded-2xl p-6 shadow-sm border border-gray-100 border-l-4 border-l-blue-500">
+                        <p class="text-sm text-gray-500 mb-1">Saldo Periode</p>
+                        <h3 class="text-2xl font-bold text-blue-600" id="reportBalance">Rp 0</h3>
+                    </div>
+                </div>
+
+                <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 mb-6">
+                    <h3 class="text-lg font-bold text-gray-800 mb-4">📄 Rincian Pemasukan</h3>
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left border-collapse">
+                            <thead class="bg-green-50 text-green-700 text-xs uppercase">
+                                <tr>
+                                    <th class="px-4 py-3 rounded-tl-lg">No</th>
+                                    <th class="px-4 py-3">Tanggal</th>
+                                    <th class="px-4 py-3">Nama Anggota</th>
+                                    <th class="px-4 py-3">Jenis Simpanan</th>
+                                    <th class="px-4 py-3 rounded-tr-lg text-right">Jumlah</th>
+                                </tr>
+                            </thead>
+                            <tbody id="reportIncomeBody" class="divide-y divide-gray-100 text-sm"></tbody>
+                            <tfoot class="bg-gray-50 font-bold">
+                                <tr>
+                                    <td colspan="4" class="px-4 py-3 text-right">Total Pemasukan</td>
+                                    <td class="px-4 py-3 text-right text-green-600" id="reportIncomeTotal">Rp 0</td>
+                                </tr>
+                            </tfoot>
+                        </table>
+                    </div>
+                </div>
+
+                <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
+                    <h3 class="text-lg font-bold text-gray-800 mb-4">📄 Rincian Pengeluaran</h3>
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left border-collapse">
+                            <thead class="bg-red-50 text-red-700 text-xs uppercase">
+                                <tr>
+                                    <th class="px-4 py-3 rounded-tl-lg">No</th>
+                                    <th class="px-4 py-3">Tanggal</th>
+                                    <th class="px-4 py-3">Kategori</th>
+                                    <th class="px-4 py-3">Keterangan</th>
+                                    <th class="px-4 py-3 rounded-tr-lg text-right">Jumlah</th>
+                                </tr>
+                            </thead>
+                            <tbody id="reportExpenseBody" class="divide-y divide-gray-100 text-sm"></tbody>
+                            <tfoot class="bg-gray-50 font-bold">
+                                <tr>
+                                    <td colspan="4" class="px-4 py-3 text-right">Total Pengeluaran</td>
+                                    <td class="px-4 py-3 text-right text-red-600" id="reportExpenseTotal">Rp 0</td>
+                                </tr>
+                            </tfoot>
+                        </table>
+                    </div>
+                </div>
+            </main>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+    <script>
+        // Set default period (last 3 months)
+        document.addEventListener('DOMContentLoaded', () => {
+            const now = new Date();
+            const y = now.getFullYear();
+            const m = String(now.getMonth() + 1).padStart(2, '0');
+            const prevM = now.getMonth() === 0 ? `${y-1}-12` : `${y}-${String(now.getMonth()).padStart(2, '0')}`;
+            document.getElementById('reportFrom').value = prevM;
+            document.getElementById('reportTo').value = `${y}-${m}`;
+            generateReport();
+        });
+
+        function generateReport() {
+            const from = document.getElementById('reportFrom').value;
+            const to = document.getElementById('reportTo').value;
+            if (!from || !to) return;
+
+            const savings = JSON.parse(localStorage.getItem('koperasikas_savings') || '[]');
+            const expenses = JSON.parse(localStorage.getItem('koperasikas_expenses') || '[]');
+
+            const filteredSavings = savings.filter(s => s.date >= from && s.date <= to + '-31');
+            const filteredExpenses = expenses.filter(e => e.date >= from && e.date <= to + '-31');
+
+            const totalIncome = filteredSavings.reduce((sum, s) => sum + parseFloat(s.amount), 0);
+            const totalExpense = filteredExpenses.reduce((sum, e) => sum + parseFloat(e.amount), 0);
+
+            document.getElementById('reportIncome').textContent = formatRupiah(totalIncome);
+            document.getElementById('reportExpense').textContent = formatRupiah(totalExpense);
+            document.getElementById('reportBalance').textContent = formatRupiah(totalIncome - totalExpense);
+            document.getElementById('reportIncomeTotal').textContent = formatRupiah(totalIncome);
+            document.getElementById('reportExpenseTotal').textContent = formatRupiah(totalExpense);
+
+            // Render income table
+            const incomeBody = document.getElementById('reportIncomeBody');
+            incomeBody.innerHTML = filteredSavings.map((s, i) => `
+                <tr class="hover:bg-gray-50">
+                    <td class="px-4 py-3">${i + 1}</td>
+                    <td class="px-4 py-3">${s.date}</td>
+                    <td class="px-4 py-3 font-medium">${s.memberName}</td>
+                    <td class="px-4 py-3"><span class="px-2 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-700">${s.type}</span></td>
+                    <td class="px-4 py-3 text-right font-bold text-green-600">${formatRupiah(s.amount)}</td>
+                </tr>
+            `).join('') || '<tr><td colspan="5" class="px-4 py-8 text-center text-gray-500">Tidak ada data pemasukan</td></tr>';
+
+            // Render expense table
+            const expenseBody = document.getElementById('reportExpenseBody');
+            expenseBody.innerHTML = filteredExpenses.map((e, i) => `
+                <tr class="hover:bg-gray-50">
+                    <td class="px-4 py-3">${i + 1}</td>
+                    <td class="px-4 py-3">${e.date}</td>
+                    <td class="px-4 py-3"><span class="px-2 py-1 text-xs font-semibold rounded-full bg-gray-100 text-gray-700">${e.category}</span></td>
+                    <td class="px-4 py-3 text-gray-600">${e.note}</td>
+                    <td class="px-4 py-3 text-right font-bold text-red-600">${formatRupiah(e.amount)}</td>
+                </tr>
+            `).join('') || '<tr><td colspan="5" class="px-4 py-8 text-center text-gray-500">Tidak ada data pengeluaran</td></tr>';
+        }
+    </script>
+</body>
+</html>

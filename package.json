@@ -1,6 +1,7 @@
 {
   "name": "koperasikas-js",
   "version": "1.0.0",
+  "type": "module",
   "private": true,
   "dependencies": {
     "mysql2": "^3.9.0",

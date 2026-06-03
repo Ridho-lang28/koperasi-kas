@@ -105,9 +105,9 @@
                     <div class="flex flex-col sm:flex-row sm:items-center justify-between mb-6 gap-4">
                         <div>
                             <h3 class="font-bold text-gray-800 text-lg">Grafik Keuangan Bulanan</h3>
-                            <p class="text-sm text-gray-400 mt-0.5">Pemasukan dan pengeluaran sepanjang tahun 2026</p>
+                            <p class="text-sm text-gray-400 mt-0.5">Pemasukan dan pengeluaran sepanjang tahun berjalan</p>
                         </div>
-                        <span class="px-3 py-1 bg-red-50 text-primary text-xs font-semibold rounded-full self-start">Tahun 2026</span>
+                        <span class="px-3 py-1 bg-red-50 text-primary text-xs font-semibold rounded-full self-start" id="chartYearLabel">Tahun 2026</span>
                     </div>
                     <div class="h-72 sm:h-80">
                         <canvas id="dashboardChart"></canvas>
@@ -147,7 +147,7 @@
                             </div>
                         </div>
 
-                        <!-- Pengingat Simpanan Wajib (Pindah ke sini) -->
+                        <!-- Pengingat Simpanan Wajib -->
                         <div class="bg-white rounded-2xl shadow-sm border border-red-100 p-6 hidden" id="reminderCard">
                             <h3 class="font-bold text-gray-800 text-base mb-3 flex items-center gap-2">
                                 <span class="w-2 h-2 bg-red-500 rounded-full animate-pulse"></span>
@@ -164,71 +164,150 @@
 
     <script src="script.js"></script>
     <script>
-        // Data
-        const savings = JSON.parse(localStorage.getItem('koperasikas_savings') || '[]');
-        const expenses = JSON.parse(localStorage.getItem('koperasikas_expenses') || '[]');
-        const members = JSON.parse(localStorage.getItem('koperasikas_members') || '[]');
+        // GLOBAL VARIABLES
+        let allSavings = [];
+        let allExpenses = [];
+        let allMembers = [];
+        let dashboardChartInstance = null;
 
-        // Stats
-        const totalIncome = savings.reduce((s, i) => s + parseFloat(i.amount || 0), 0);
-        const totalExpense = expenses.reduce((s, i) => s + parseFloat(i.amount || 0), 0);
-        document.getElementById('statIncome').textContent = formatRupiah(totalIncome);
-        document.getElementById('statExpense').textContent = formatRupiah(totalExpense);
-        document.getElementById('statBalance').textContent = formatRupiah(totalIncome - totalExpense);
-        document.getElementById('statMembers').textContent = members.filter(m => m.status === 'Aktif').length;
+        async function initDashboard() {
+            try {
+                const [resMembers, resSavings, resExpenses] = await Promise.all([
+                    fetch('/api/anggota.js'),
+                    fetch('/api/simpanan.js'),
+                    fetch('/api/pengeluaran.js')
+                ]);
 
-        // Chart
-        const months = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'];
-        const incomeData = [], expenseData = [];
-        for(let i=0; i<12; i++) {
-            const key = `2026-${String(i+1).padStart(2,'0')}`;
-            incomeData.push(savings.filter(s => s.date?.startsWith(key)).reduce((s,x)=>s+parseFloat(x.amount||0),0));
-            expenseData.push(expenses.filter(e => e.date?.startsWith(key)).reduce((s,x)=>s+parseFloat(x.amount||0),0));
+                if (!resMembers.ok || !resSavings.ok || !resExpenses.ok) throw new Error('Gagal memuat data');
+
+                allMembers = await resMembers.json();
+                allSavings = await resSavings.json();
+                allExpenses = await resExpenses.json();
+
+                renderStats();
+                renderChart();
+                renderRecentTransactions();
+                renderSavingSummary();
+                renderReminder();
+            } catch (err) {
+                console.error(err);
+                showToast('Gagal memuat data dashboard.', 'error');
+            }
         }
 
-        const ctx = document.getElementById('dashboardChart').getContext('2d');
-        const gradientIncome = ctx.createLinearGradient(0, 0, 0, 300);
-        gradientIncome.addColorStop(0, 'rgba(16, 185, 129, 0.15)');
-        gradientIncome.addColorStop(1, 'rgba(16, 185, 129, 0)');
+        function renderStats() {
+            const totalIncome = allSavings.reduce((sum, s) => sum + parseFloat(s.nominal || 0), 0);
+            const totalExpense = allExpenses.reduce((sum, e) => sum + parseFloat(e.nominal || 0), 0);
+            
+            document.getElementById('statIncome').textContent = formatRupiah(totalIncome);
+            document.getElementById('statExpense').textContent = formatRupiah(totalExpense);
+            document.getElementById('statBalance').textContent = formatRupiah(totalIncome - totalExpense);
+            document.getElementById('statMembers').textContent = allMembers.filter(m => m.status === 'Aktif').length;
+        }
 
-        new Chart(ctx, {
-            type: 'line',
-            data: {
-                labels: months,
-                datasets: [
-                    { label: 'Pemasukan', data: incomeData, borderColor: '#10b981', backgroundColor: gradientIncome, fill: true, tension: 0.4, pointRadius: 0, pointHoverRadius: 5, borderWidth: 2.5 },
-                    { label: 'Pengeluaran', data: expenseData, borderColor: '#DC1B33', fill: false, tension: 0.4, pointRadius: 0, pointHoverRadius: 5, borderWidth: 2.5 }
-                ]
-            },
-            options: {
-                responsive: true, maintainAspectRatio: false,
-                interaction: { mode: 'index', intersect: false },
-                plugins: {
-                    legend: { display: false },
-                    tooltip: {
-                        backgroundColor: '#fff', titleColor: '#374151', bodyColor: '#111827', borderColor: '#e5e7eb', borderWidth: 1, padding: 12, cornerRadius: 8,
-                        titleFont: { family: 'Inter', weight: '600' }, bodyFont: { family: 'Inter' },
-                        callbacks: { label: c => c.dataset.label + ': ' + formatRupiah(c.parsed.y) }
-                    }
-                },
-                scales: {
-                    x: { grid: { display: false }, ticks: { color: '#9ca3af', font: { family: 'Inter', size: 11 } } },
-                    y: { beginAtZero: true, grid: { color: '#f3f4f6', drawBorder: false }, ticks: { color: '#9ca3af', font: { family: 'Inter', size: 11 }, callback: v => (v/1000000).toFixed(0) + 'jt' } }
-                }
+        function renderChart() {
+            const currentYear = new Date().getFullYear();
+            document.getElementById('chartYearLabel').textContent = `Tahun ${currentYear}`;
+            
+            const months = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'];
+            const incomeData = [], expenseData = [];
+            
+            for(let i=0; i<12; i++) {
+                const key = `${currentYear}-${String(i+1).padStart(2,'0')}`;
+                incomeData.push(allSavings.filter(s => s.tanggal?.startsWith(key)).reduce((sum, x) => sum + parseFloat(x.nominal || 0), 0));
+                expenseData.push(allExpenses.filter(e => e.tanggal?.startsWith(key)).reduce((sum, x) => sum + parseFloat(x.nominal || 0), 0));
             }
-        });
 
-        // Pengingat Simpanan Wajib (Compact)
+            const ctx = document.getElementById('dashboardChart').getContext('2d');
+            const gradientIncome = ctx.createLinearGradient(0, 0, 0, 300);
+            gradientIncome.addColorStop(0, 'rgba(16, 185, 129, 0.15)');
+            gradientIncome.addColorStop(1, 'rgba(16, 185, 129, 0)');
+
+            if (dashboardChartInstance) dashboardChartInstance.destroy();
+
+            dashboardChartInstance = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: months,
+                    datasets: [
+                        { label: 'Pemasukan', data: incomeData, borderColor: '#10b981', backgroundColor: gradientIncome, fill: true, tension: 0.4, pointRadius: 0, pointHoverRadius: 5, borderWidth: 2.5 },
+                        { label: 'Pengeluaran', data: expenseData, borderColor: '#DC1B33', fill: false, tension: 0.4, pointRadius: 0, pointHoverRadius: 5, borderWidth: 2.5 }
+                    ]
+                },
+                options: {
+                    responsive: true, maintainAspectRatio: false,
+                    interaction: { mode: 'index', intersect: false },
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: {
+                            backgroundColor: '#fff', titleColor: '#374151', bodyColor: '#111827', borderColor: '#e5e7eb', borderWidth: 1, padding: 12, cornerRadius: 8,
+                            titleFont: { family: 'Inter', weight: '600' }, bodyFont: { family: 'Inter' },
+                            callbacks: { label: c => c.dataset.label + ': ' + formatRupiah(c.parsed.y) }
+                        }
+                    },
+                    scales: {
+                        x: { grid: { display: false }, ticks: { color: '#9ca3af', font: { family: 'Inter', size: 11 } } },
+                        y: { beginAtZero: true, grid: { color: '#f3f4f6', drawBorder: false }, ticks: { color: '#9ca3af', font: { family: 'Inter', size: 11 }, callback: v => (v/1000000).toFixed(0) + 'jt' } }
+                    }
+                }
+            });
+        }
+
+        function renderRecentTransactions() {
+            const allTx = [
+                ...allSavings.map(s => ({ type: 'in', title: s.nama_anggota, sub: `Simpanan ${s.jenis_simpanan}`, date: s.tanggal, amount: parseFloat(s.nominal) })),
+                ...allExpenses.map(e => ({ type: 'out', title: e.kategori, sub: e.keterangan || 'Pengeluaran operasional', date: e.tanggal, amount: parseFloat(e.nominal) }))
+            ].sort((a,b) => new Date(b.date) - new Date(a.date)).slice(0, 7);
+
+            document.getElementById('recentTransactionsList').innerHTML = allTx.map(tx => `
+                <div class="px-6 py-4 flex items-center justify-between hover:bg-gray-50 transition cursor-pointer">
+                    <div class="flex items-center gap-3">
+                        <div class="w-10 h-10 rounded-full ${tx.type==='in'?'bg-green-100 text-green-600':'bg-red-100 text-red-600'} flex items-center justify-center">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="${tx.type==='in'?'M13 7h8m0 0v8m0-8l-8 8-4-4-6 6':'M13 17h8m0 0V9m0 8l-8-8-4 4-6-6'}"></path></svg>
+                        </div>
+                        <div>
+                            <p class="text-sm font-semibold text-gray-800">${tx.title}</p>
+                            <p class="text-xs text-gray-400">${tx.sub} · ${formatTanggal(tx.date)}</p>
+                        </div>
+                    </div>
+                    <span class="text-sm font-bold ${tx.type==='in'?'text-emerald-600':'text-primary'}">${tx.type==='in'?'+':'-'}${formatRupiah(tx.amount)}</span>
+                </div>
+            `).join('') || '<div class="px-6 py-12 text-center text-gray-400 text-sm">Belum ada transaksi</div>';
+        }
+
+        function renderSavingSummary() {
+            const pokok = allSavings.filter(s=>s.jenis_simpanan==='Pokok').reduce((a,b)=>a+parseFloat(b.nominal),0);
+            const wajib = allSavings.filter(s=>s.jenis_simpanan==='Wajib').reduce((a,b)=>a+parseFloat(b.nominal),0);
+            const sukarela = allSavings.filter(s=>s.jenis_simpanan==='Sukarela').reduce((a,b)=>a+parseFloat(b.nominal),0);
+            const max = Math.max(pokok, wajib, sukarela, 1);
+
+            document.getElementById('savingSummary').innerHTML = `
+                <div class="space-y-1">
+                    <div class="flex justify-between text-xs"><span class="text-gray-600">Simpanan Pokok</span><span class="font-semibold text-gray-800">${formatRupiah(pokok)}</span></div>
+                    <div class="w-full bg-gray-100 rounded-full h-2"><div class="bg-blue-500 h-2 rounded-full transition-all" style="width:${(pokok/max)*100}%"></div></div>
+                </div>
+                <div class="space-y-1">
+                    <div class="flex justify-between text-xs"><span class="text-gray-600">Simpanan Wajib</span><span class="font-semibold text-gray-800">${formatRupiah(wajib)}</span></div>
+                    <div class="w-full bg-gray-100 rounded-full h-2"><div class="bg-purple-500 h-2 rounded-full transition-all" style="width:${(wajib/max)*100}%"></div></div>
+                </div>
+                <div class="space-y-1">
+                    <div class="flex justify-between text-xs"><span class="text-gray-600">Simpanan Sukarela</span><span class="font-semibold text-gray-800">${formatRupiah(sukarela)}</span></div>
+                    <div class="w-full bg-gray-100 rounded-full h-2"><div class="bg-amber-500 h-2 rounded-full transition-all" style="width:${(sukarela/max)*100}%"></div></div>
+                </div>
+            `;
+            document.getElementById('totalSavingAmount').textContent = formatRupiah(pokok + wajib + sukarela);
+        }
+
         function renderReminder() {
-            const activeMembers = members.filter(m => m.status === 'Aktif');
+            const activeMembers = allMembers.filter(m => m.status === 'Aktif');
             const now = new Date();
             const currentMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
             
             const unpaidMembers = activeMembers.filter(member => {
-                return !savings.some(s => 
-                    s.memberName === member.name && 
-                    s.type === 'Wajib' && 
-                    s.date?.startsWith(currentMonth)
+                return !allSavings.some(s => 
+                    s.id_anggota === member.id_anggota && 
+                    s.jenis_simpanan === 'Wajib' && 
+                    s.tanggal?.startsWith(currentMonth)
                 );
             });
 
@@ -246,7 +325,7 @@
             unpaidMembers.slice(0, 4).forEach(m => {
                 html += `<li class="flex items-center gap-2 text-sm text-gray-700">
                     <svg class="w-4 h-4 text-red-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
-                    ${m.name}
+                    ${m.nama_anggota}
                 </li>`;
             });
             html += `</ul>`;
@@ -256,51 +335,7 @@
             content.innerHTML = html;
         }
 
-        // Recent Transactions
-        const allTx = [
-            ...savings.map(s => ({ type: 'in', title: s.memberName, sub: `Simpanan ${s.type}`, date: s.date, amount: parseFloat(s.amount) })),
-            ...expenses.map(e => ({ type: 'out', title: e.category, sub: e.note || 'Pengeluaran operasional', date: e.date, amount: parseFloat(e.amount) }))
-        ].sort((a,b) => new Date(b.date) - new Date(a.date)).slice(0, 7);
-
-        document.getElementById('recentTransactionsList').innerHTML = allTx.map(tx => `
-            <div class="px-6 py-4 flex items-center justify-between hover:bg-gray-50 transition cursor-pointer">
-                <div class="flex items-center gap-3">
-                    <div class="w-10 h-10 rounded-full ${tx.type==='in'?'bg-green-100 text-green-600':'bg-red-100 text-red-600'} flex items-center justify-center">
-                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="${tx.type==='in'?'M13 7h8m0 0v8m0-8l-8 8-4-4-6 6':'M13 17h8m0 0V9m0 8l-8-8-4 4-6-6'}"></path></svg>
-                    </div>
-                    <div>
-                        <p class="text-sm font-semibold text-gray-800">${tx.title}</p>
-                        <p class="text-xs text-gray-400">${tx.sub} · ${new Date(tx.date).toLocaleDateString('id-ID', {day:'numeric', month:'short', year:'numeric'})}</p>
-                    </div>
-                </div>
-                <span class="text-sm font-bold ${tx.type==='in'?'text-emerald-600':'text-primary'}">${tx.type==='in'?'+':'-'}${formatRupiah(tx.amount)}</span>
-            </div>
-        `).join('') || '<div class="px-6 py-12 text-center text-gray-400 text-sm">Belum ada transaksi</div>';
-
-        // Saving Summary
-        const pokok = savings.filter(s=>s.type==='Pokok').reduce((a,b)=>a+parseFloat(b.amount),0);
-        const wajib = savings.filter(s=>s.type==='Wajib').reduce((a,b)=>a+parseFloat(b.amount),0);
-        const sukarela = savings.filter(s=>s.type==='Sukarela').reduce((a,b)=>a+parseFloat(b.amount),0);
-        const max = Math.max(pokok, wajib, sukarela, 1);
-
-        document.getElementById('savingSummary').innerHTML = `
-            <div class="space-y-1">
-                <div class="flex justify-between text-xs"><span class="text-gray-600">Simpanan Pokok</span><span class="font-semibold text-gray-800">${formatRupiah(pokok)}</span></div>
-                <div class="w-full bg-gray-100 rounded-full h-2"><div class="bg-blue-500 h-2 rounded-full transition-all" style="width:${(pokok/max)*100}%"></div></div>
-            </div>
-            <div class="space-y-1">
-                <div class="flex justify-between text-xs"><span class="text-gray-600">Simpanan Wajib</span><span class="font-semibold text-gray-800">${formatRupiah(wajib)}</span></div>
-                <div class="w-full bg-gray-100 rounded-full h-2"><div class="bg-purple-500 h-2 rounded-full transition-all" style="width:${(wajib/max)*100}%"></div></div>
-            </div>
-            <div class="space-y-1">
-                <div class="flex justify-between text-xs"><span class="text-gray-600">Simpanan Sukarela</span><span class="font-semibold text-gray-800">${formatRupiah(sukarela)}</span></div>
-                <div class="w-full bg-gray-100 rounded-full h-2"><div class="bg-amber-500 h-2 rounded-full transition-all" style="width:${(sukarela/max)*100}%"></div></div>
-            </div>
-        `;
-        document.getElementById('totalSavingAmount').textContent = formatRupiah(pokok + wajib + sukarela);
-
-        // Init
-        renderReminder();
+        document.addEventListener('DOMContentLoaded', initDashboard);
     </script>
 </body>
 </html>

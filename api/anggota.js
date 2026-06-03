@@ -7,7 +7,8 @@ export default async function handler(req, res) {
   if (req.method === 'GET') {
     try {
       const db = await getDb();
-      const [rows] = await db.execute('SELECT * FROM anggota ORDER BY nama ASC');
+      // Sesuaikan nama kolom dengan database
+      const [rows] = await db.execute('SELECT * FROM anggota ORDER BY nama_anggota ASC');
       return res.status(200).json(rows);
     } catch (error) {
       console.error('Get Anggota Error:', error);
@@ -19,15 +20,17 @@ export default async function handler(req, res) {
   else if (req.method === 'POST') {
     try {
       const db = await getDb();
-      const { nama, nik, alamat, no_hp, tanggal_bergabung } = req.body;
+      // Mapping variabel dari frontend ke nama kolom database
+      const { nama_anggota, nik, alamat, no_hp, tanggal_gabung } = req.body;
       
-      if (!nama || !nik) {
+      if (!nama_anggota || !nik) {
         return res.status(400).json({ error: 'Nama dan NIK wajib diisi' });
       }
 
+      // Gunakan nama kolom persis seperti di database
       await db.execute(
-        'INSERT INTO anggota (nama, nik, alamat, no_hp, tanggal_bergabung) VALUES (?, ?, ?, ?, ?)',
-        [nama, nik, alamat, no_hp, tanggal_bergabung]
+        'INSERT INTO anggota (nama_anggota, nik, alamat, no_hp, tanggal_gabung) VALUES (?, ?, ?, ?, ?)',
+        [nama_anggota, nik, alamat, no_hp, tanggal_gabung]
       );
       
       return res.status(201).json({ success: true, message: 'Anggota berhasil ditambahkan' });

@@ -135,7 +135,7 @@
                                 <input type="text" id="expenseNote" class="form-input" placeholder="Deskripsi pengeluaran">
                             </div>
                         </div>
-                        <button type="submit" class="px-6 py-2.5 bg-primary text-white font-semibold rounded-xl hover:bg-red-700 transition shadow-lg shadow-red-500/20 text-sm">
+                        <button type="submit" id="btnSaveExpense" class="px-6 py-2.5 bg-primary text-white font-semibold rounded-xl hover:bg-red-700 transition shadow-lg shadow-red-500/20 text-sm">
                             Catat Pengeluaran
                         </button>
                     </form>
@@ -177,34 +177,46 @@
 
     <script src="script.js"></script>
     <script>
+        // GLOBAL VARIABLES
+        let allExpenses = [];
+
         document.getElementById('expenseDate').value = new Date().toISOString().split('T')[0];
 
+        // FORMAT RUPIAH SAAT INPUT
         document.getElementById('expenseAmount').addEventListener('input', function(e) {
             let val = this.value.replace(/\D/g, '');
             this.value = val.replace(/\B(?=(\d{3})+(?!\d))/g, '.');
         });
 
-        function generateId() {
-            const expenses = JSON.parse(localStorage.getItem('koperasikas_expenses') || '[]');
-            const num = expenses.length + 1;
-            return 'PGL-' + String(num).padStart(3, '0');
+        // FETCH DATA PENGELUARAN DARI API
+        async function fetchExpenses() {
+            try {
+                const res = await fetch('/api/pengeluaran.js');
+                if (!res.ok) throw new Error('Gagal memuat pengeluaran');
+                allExpenses = await res.json();
+                renderExpenses();
+            } catch (err) {
+                console.error(err);
+                showToast('Gagal memuat data pengeluaran dari server.', 'error');
+            }
         }
 
         function formatTanggal(dateStr) {
+            if (!dateStr) return '-';
             const d = new Date(dateStr);
             const months = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'];
             return `${d.getDate()} ${months[d.getMonth()]} ${d.getFullYear()}`;
         }
 
         function renderExpenses() {
-            const expenses = JSON.parse(localStorage.getItem('koperasikas_expenses') || '[]');
             const tbody = document.getElementById('expenseTableBody');
             const empty = document.getElementById('emptyExpense');
             const countEl = document.getElementById('expenseCount');
             const totalEl = document.getElementById('expenseTotal');
 
-            const sorted = [...expenses].sort((a, b) => new Date(b.date) - new Date(a.date));
-            const total = sorted.reduce((sum, e) => sum + parseFloat(e.rawAmount || e.amount), 0);
+            // SORT BERDASARKAN TANGGAL TERBARU
+            const sorted = [...allExpenses].sort((a, b) => new Date(b.tanggal) - new Date(a.tanggal));
+            const total = sorted.reduce((sum, e) => sum + parseFloat(e.nominal || 0), 0);
 
             countEl.textContent = `(${sorted.length} transaksi)`;
             totalEl.textContent = `Total: ${formatRupiah(total)}`;
@@ -217,19 +229,22 @@
             empty.classList.add('hidden');
 
             tbody.innerHTML = sorted.map((e, index) => {
-                const amount = parseFloat(e.rawAmount || e.amount);
+                // GUNAKAN ID YANG SUDAH DI-FORMAT DARI BACKEND ("EXP-001")
+                const displayId = e.id_pengeluaran_formatted || `EXP-${String(e.id_pengeluaran).padStart(3, '0')}`;
+                const amount = parseFloat(e.nominal || 0);
+                
                 return `
                 <tr class="hover:bg-gray-50/50 transition">
                     <td class="px-6 py-4 text-sm font-medium text-gray-500">${index + 1}</td>
-                    <td class="px-6 py-4 text-xs font-mono text-gray-400">${e.id || '-'}</td>
+                    <td class="px-6 py-4 text-xs font-mono text-gray-400">${displayId}</td>
                     <td class="px-6 py-4">
-                        <span class="badge-kategori">${e.category}</span>
+                        <span class="badge-kategori">${e.kategori}</span>
                     </td>
                     <td class="px-6 py-4 text-sm font-bold text-primary">${formatRupiah(amount)}</td>
-                    <td class="px-6 py-4 text-sm text-gray-500">${formatTanggal(e.date)}</td>
-                    <td class="px-6 py-4 text-sm text-gray-400">${e.note || '-'}</td>
+                    <td class="px-6 py-4 text-sm text-gray-500">${formatTanggal(e.tanggal)}</td>
+                    <td class="px-6 py-4 text-sm text-gray-400">${e.keterangan || '-'}</td>
                     <td class="px-6 py-4 text-center">
-                        <button onclick="deleteExpense('${e.id}')" class="p-1.5 text-gray-300 hover:text-red-500 hover:bg-red-50 rounded-lg transition">
+                        <button onclick="deleteExpense(${e.id_pengeluaran})" class="p-1.5 text-gray-300 hover:text-red-500 hover:bg-red-50 rounded-lg transition">
                             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
                         </button>
                     </td>
@@ -237,48 +252,61 @@
             `}).join('');
         }
 
-        document.getElementById('expenseForm').addEventListener('submit', (e) => {
+        // HANDLE FORM SUBMIT (KIRIM KE API)
+        document.getElementById('expenseForm').addEventListener('submit', async (e) => {
             e.preventDefault();
-            const category = document.getElementById('expenseCategory').value;
-            const rawAmount = document.getElementById('expenseAmount').value;
-            const amount = parseInt(rawAmount.replace(/\./g, ''));
-            const date = document.getElementById('expenseDate').value;
-            const note = document.getElementById('expenseNote').value;
+            
+            const btn = document.getElementById('btnSaveExpense');
+            const originalText = btn.innerText;
+            btn.innerText = 'Menyimpan...';
+            btn.disabled = true;
 
-            if (!category || !amount || !date) {
+            const kategori = document.getElementById('expenseCategory').value;
+            const rawAmount = document.getElementById('expenseAmount').value;
+            const nominal = parseInt(rawAmount.replace(/\./g, ''));
+            const tanggal = document.getElementById('expenseDate').value;
+            const keterangan = document.getElementById('expenseNote').value;
+
+            if (!kategori || !nominal || !tanggal) {
                 showToast('Mohon lengkapi semua field!', 'error');
+                btn.innerText = originalText;
+                btn.disabled = false;
                 return;
             }
 
-            let expenses = JSON.parse(localStorage.getItem('koperasikas_expenses') || '[]');
-            const newExpense = {
-                id: generateId(),
-                category,
-                amount,
-                rawAmount: amount,
-                date,
-                note
-            };
-            expenses.push(newExpense);
-            localStorage.setItem('koperasikas_expenses', JSON.stringify(expenses));
+            try {
+                const res = await fetch('/api/pengeluaran.js', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ kategori, nominal, tanggal, keterangan })
+                });
 
-            document.getElementById('expenseForm').reset();
-            document.getElementById('expenseDate').value = new Date().toISOString().split('T')[0];
-            renderExpenses();
-
-            showToast('Pengeluaran berhasil dicatat!', 'success');
+                const data = await res.json();
+                
+                if (res.ok) {
+                    showToast('Pengeluaran berhasil dicatat!', 'success');
+                    document.getElementById('expenseForm').reset();
+                    document.getElementById('expenseDate').value = new Date().toISOString().split('T')[0];
+                    fetchExpenses(); // REFRESH TABEL OTOMATIS
+                } else {
+                    showToast(data.error || 'Gagal mencatat pengeluaran.', 'error');
+                }
+            } catch (err) {
+                showToast('Error jaringan/server.', 'error');
+            } finally {
+                btn.innerText = originalText;
+                btn.disabled = false;
+            }
         });
 
         function deleteExpense(id) {
             if (!confirm('Yakin ingin menghapus data pengeluaran ini?')) return;
-            let expenses = JSON.parse(localStorage.getItem('koperasikas_expenses') || '[]');
-            expenses = expenses.filter(e => e.id !== id);
-            localStorage.setItem('koperasikas_expenses', JSON.stringify(expenses));
-            renderExpenses();
-            showToast('Data pengeluaran berhasil dihapus', 'info');
+            // NOTE: FITUR HAPUS BELUM TERSEDIA DI API. PERLU TAMBAH METHOD DELETE NANTI.
+            showToast('Fitur hapus belum tersedia di backend.', 'info');
         }
 
-        document.addEventListener('DOMContentLoaded', renderExpenses);
+        // LOAD DATA SAAT HALAMAN DIBUKA
+        document.addEventListener('DOMContentLoaded', fetchExpenses);
     </script>
 </body>
 </html>

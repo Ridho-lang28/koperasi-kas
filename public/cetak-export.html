@@ -1,6 +1,129 @@
-    <script src="script.js"></script>
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cetak & Export - KoperasiKas</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.31/jspdf.plugin.autotable.min.js"></script>
+    <script src="https://cdn.sheetjs.com/xlsx-0.20.0/package/dist/xlsx.full.min.js"></script>
     <script>
-        // Set default period
+        tailwind.config = { theme: { extend: { colors: { primary: '#DC1B33', dark: '#1e1e2e' } } } }
+    </script>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body class="bg-gray-50">
+
+    <div class="flex h-screen overflow-hidden">
+        <!-- SIDEBAR -->
+        <aside class="w-64 bg-dark text-white flex flex-col hidden md:flex">
+            <div class="p-6 border-b border-gray-700">
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 bg-primary rounded-lg flex items-center justify-center"><svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"></path></svg></div>
+                    <span class="text-xl font-bold">KoperasiKas</span>
+                </div>
+            </div>
+            <nav class="flex-1 overflow-y-auto py-4">
+                <div class="px-4 mb-2 text-xs font-semibold text-gray-500 uppercase">Menu Utama</div>
+                <a href="index.html" class="flex items-center gap-3 px-4 py-3 text-gray-400 hover:text-white hover:bg-gray-800 transition"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"></path></svg><span class="font-medium">Dashboard</span></a>
+                <a href="data-anggota.html" class="flex items-center gap-3 px-4 py-3 text-gray-400 hover:text-white hover:bg-gray-800 transition"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path></svg><span class="font-medium">Data Anggota</span></a>
+                <a href="simpanan.html" class="flex items-center gap-3 px-4 py-3 text-gray-400 hover:text-white hover:bg-gray-800 transition"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg><span class="font-medium">Simpanan</span></a>
+                <a href="pengeluaran.html" class="flex items-center gap-3 px-4 py-3 text-gray-400 hover:text-white hover:bg-gray-800 transition"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z"></path></svg><span class="font-medium">Pengeluaran</span></a>
+                <div class="px-4 mt-6 mb-2 text-xs font-semibold text-gray-500 uppercase">Laporan</div>
+                <a href="laporan.html" class="flex items-center gap-3 px-4 py-3 text-gray-400 hover:text-white hover:bg-gray-800 transition"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg><span class="font-medium">Laporan</span></a>
+                <a href="grafik.html" class="flex items-center gap-3 px-4 py-3 text-gray-400 hover:text-white hover:bg-gray-800 transition"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 12l3-3 3 3 4-4M8 21l4-4 4 4M3 4h18M4 4h16v12a1 1 0 01-1 1H5a1 1 0 01-1-1V4z"></path></svg><span class="font-medium">Grafik Keuangan</span></a>
+                <a href="cetak-export.html" class="flex items-center gap-3 px-4 py-3 bg-primary text-white transition"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg><span class="font-medium">Cetak & Export</span></a>
+            </nav>
+            <div class="p-4 border-t border-gray-700">
+                <button onclick="logout()" class="w-full flex items-center justify-center gap-2 px-4 py-2 text-sm text-gray-400 hover:text-white hover:bg-gray-800 rounded-lg transition"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path></svg>Keluar</button>
+            </div>
+        </aside>
+
+        <div class="flex-1 flex flex-col overflow-hidden">
+            <header class="bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between">
+                <h1 class="text-xl font-bold text-gray-800">Cetak & Export Laporan</h1>
+            </header>
+
+            <main class="flex-1 overflow-y-auto p-6">
+                <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 mb-6">
+                    <h3 class="text-lg font-bold text-gray-800 mb-2">📊 Export Laporan Keuangan</h3>
+                    <p class="text-sm text-gray-500 mb-6">Pilih periode dan format file yang diinginkan.</p>
+                    
+                    <div class="flex flex-wrap gap-4 items-end mb-6">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Dari Bulan</label>
+                            <input type="month" id="exportFrom" class="px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-primary/20 outline-none">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Sampai Bulan</label>
+                            <input type="month" id="exportTo" class="px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-primary/20 outline-none">
+                        </div>
+                    </div>
+
+                    <div class="flex flex-wrap gap-3">
+                        <button onclick="exportPDF()" class="px-6 py-3 bg-red-600 text-white font-medium rounded-xl hover:bg-red-700 transition flex items-center gap-2 shadow-lg shadow-red-500/20">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+                            Export PDF
+                        </button>
+                        <button onclick="exportExcel()" class="px-6 py-3 bg-green-600 text-white font-medium rounded-xl hover:bg-green-700 transition flex items-center gap-2 shadow-lg shadow-green-500/20">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+                            Export Excel
+                        </button>
+                        <button onclick="window.print()" class="px-6 py-3 bg-gray-600 text-white font-medium rounded-xl hover:bg-gray-700 transition flex items-center gap-2">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"></path></svg>
+                            Cetak Langsung
+                        </button>
+                    </div>
+                </div>
+
+                <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
+                    <h3 class="text-lg font-bold text-gray-800 mb-2"> Export Data Anggota</h3>
+                    <p class="text-sm text-gray-500 mb-6">Download daftar anggota koperasi dalam format PDF atau Excel.</p>
+                    
+                    <div class="flex flex-wrap gap-3">
+                        <button onclick="exportMembersPDF()" class="px-5 py-2.5 border border-red-500 text-red-600 font-medium rounded-xl hover:bg-red-50 transition flex items-center gap-2">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+                            Anggota ke PDF
+                        </button>
+                        <button onclick="exportMembersExcel()" class="px-5 py-2.5 border border-green-500 text-green-600 font-medium rounded-xl hover:bg-green-50 transition flex items-center gap-2">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+                            Anggota ke Excel
+                        </button>
+                    </div>
+                </div>
+            </main>
+        </div>
+    </div>
+
+    <!-- FUNGSI HELPER LOKAL AGAR TIDAK CRASH SAAT LOAD -->
+    <script>
+        function formatRupiah(angka) {
+            return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(angka || 0);
+        }
+        
+        function formatTanggal(dateStr) {
+            if (!dateStr) return '-';
+            const d = new Date(dateStr);
+            const months = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'];
+            return `${d.getDate()} ${months[d.getMonth()]} ${d.getFullYear()}`;
+        }
+
+        function showToast(message, type = 'info') {
+            const toast = document.createElement('div');
+            toast.className = `fixed top-5 right-5 z-50 px-6 py-3 rounded-lg shadow-lg text-white font-medium animate-fade-in transition-all duration-300 ${type === 'success' ? 'bg-green-500' : type === 'error' ? 'bg-red-500' : 'bg-blue-500'}`;
+            toast.innerText = message;
+            document.body.appendChild(toast);
+            setTimeout(() => { toast.style.opacity = '0'; setTimeout(() => toast.remove(), 300); }, 3000);
+        }
+
+        // LOGOUT FUNCTION LOKAL
+        function logout() {
+            localStorage.removeItem('koperasikas_user');
+            window.location.href = 'login.html';
+        }
+
+        // SET DEFAULT PERIODE
         document.addEventListener('DOMContentLoaded', () => {
             const now = new Date();
             const y = now.getFullYear();
@@ -10,7 +133,7 @@
             document.getElementById('exportTo').value = `${y}-${m}`;
         });
 
-        // FUNGSI HELPER UNTUK AMBIL DATA DENGAN VALIDASI
+        // FUNGSI AMBIL DATA DENGAN VALIDASI
         async function getExportData() {
             const from = document.getElementById('exportFrom').value;
             const to = document.getElementById('exportTo').value;
@@ -36,7 +159,6 @@
                 const allSavings = await resSavings.json();
                 const allExpenses = await resExpenses.json();
 
-                // Filter berdasarkan periode
                 const savings = allSavings.filter(s => s.tanggal >= from && s.tanggal <= toDateEnd);
                 const expenses = allExpenses.filter(e => e.tanggal >= from && e.tanggal <= toDateEnd);
                 
@@ -199,7 +321,7 @@
             }
         }
 
-        // EXPORT ANGGOTA KE EXCEL (SUDAH AMAN, TAPI DIBERIKAN TRY-CATCH JUGA)
+        // EXPORT ANGGOTA KE EXCEL
         async function exportMembersExcel() {
             const btn = event.currentTarget;
             const originalText = btn.innerHTML;
@@ -222,3 +344,5 @@
             }
         }
     </script>
+</body>
+</html>
